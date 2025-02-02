@@ -44,6 +44,11 @@ app.prepare().then(() => {
             handleMessage(socket, roomCode, message, sender, io); // Use the handler for messages
         });
 
+        // Event listener for toggling chat in a room (open/close)
+        socket.on("toggle-room-open-status", ({ roomCode }) => {
+            handleToggleChat(socket, roomCode, io);
+        });
+
         // Event listener for user disconnection
         socket.on("disconnect", () => {
             handleDisconnect(socket); // Use the handler for disconnect
@@ -90,7 +95,11 @@ const handleJoinRoom = (
     io.to(roomCode).emit("new-user-joined", message);
 
     // Send confirmation back to the user with their username and room code
-    socket.emit("joined-success", { roomCode, user });
+    socket.emit("joined-success", {
+        roomCode,
+        user,
+        isRoomOpen: rooms[roomCode].isRoomOpen,
+    });
 };
 
 /**
@@ -120,6 +129,11 @@ const handleMessage = (
     sender: User | "Server",
     io: Server
 ) => {
+    if (!rooms[roomCode]?.isRoomOpen) {
+        socket.emit("error-message", { msg: "Chat is closed by the owner" });
+        return;
+    }
+
     console.log(`SERVER: New message from ${sender} in room ${roomCode}`);
 
     // Create a message object to send to other users in the room
@@ -127,6 +141,31 @@ const handleMessage = (
 
     // Broadcast the message to everyone in the room except the sender
     io.to(roomCode).emit("new-message", messageData);
+};
+
+/**
+ * Function to handle toggling chat in a room and broadcast the event to other users
+ *
+ * @param socket - The socket instance of the user who is toggling chat.
+ * @param roomCode - The room code where the user is toggling chat.
+ * @param io - The socket.io server instance to emit events.
+ */
+const handleToggleChat = (socket: Socket, roomCode: string, io: Server) => {
+    if (rooms[roomCode] && rooms[roomCode].ownerSocketId === socket.id) {
+        rooms[roomCode].isRoomOpen = !rooms[roomCode].isRoomOpen;
+        io.to(roomCode).emit("is-room-open-status", {
+            chatOpen: rooms[roomCode].isRoomOpen,
+        });
+
+        // Broadcast the message to everyone in the room is closed or open
+        const messageData = encode({
+            sender: "Server",
+            msg: `Chat ${
+                rooms[roomCode].isRoomOpen ? "opened" : "closed"
+            } by the owner`,
+        });
+        io.to(roomCode).emit("new-message", messageData);
+    }
 };
 
 /**
@@ -143,7 +182,7 @@ function joinRoom(roomCode: string, socketId: string, username: string): User {
 
     if (!rooms[roomCode]) {
         // If room doesn't exist, create the room and assign the first user as owner
-        rooms[roomCode] = { ownerSocketId: socketId };
+        rooms[roomCode] = { ownerSocketId: socketId, isRoomOpen: true };
         userRole = "owner"; // First user becomes the owner
     }
 
@@ -174,6 +213,7 @@ type Message = {
 };
 
 interface Room {
+    isRoomOpen: boolean;
     ownerSocketId: string;
 }
 

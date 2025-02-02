@@ -8,6 +8,7 @@ type Message = {
 };
 
 interface Room {
+    isRoomOpen: boolean;
     ownerSocketId: string;
 }
 

@@ -9,6 +9,7 @@ import { Fragment, useEffect, useState } from "react";
 function RootPage() {
     const [user, setUser] = useState<User>();
     const [joined, setJoined] = useState(false);
+    const [isRoomOpen, setIsRoomOpen] = useState(true);
     const [roomCode, setRoomCode] = useState<string>("");
     const [messages, setMessages] = useState<Message[]>([]);
 
@@ -34,13 +35,16 @@ function RootPage() {
         const handleJoinSuccess = ({
             roomCode,
             user,
+            isRoomOpen,
         }: {
             roomCode: string;
             user: User;
+            isRoomOpen: boolean;
         }) => {
             setUser(user);
-            setRoomCode(roomCode);
             setJoined(true);
+            setRoomCode(roomCode);
+            setIsRoomOpen(isRoomOpen);
         };
 
         socket.on("new-message", handleNewMessage);
@@ -61,7 +65,12 @@ function RootPage() {
             </title>
             <div className="flex items-center justify-center h-dvh w-full">
                 {joined && user ? (
-                    <Room roomCode={roomCode} user={user} messages={messages} />
+                    <Room
+                        roomCode={roomCode}
+                        user={user}
+                        messages={messages}
+                        roomOpen={isRoomOpen}
+                    />
                 ) : (
                     <JoinRoom onJoinRoom={handleOnJoinRoom} />
                 )}
