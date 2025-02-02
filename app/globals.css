@@ -5,3 +5,28 @@
 body {
     font-family: Arial, Helvetica, sans-serif;
 }
+
+.glass {
+    backdrop-filter: blur(20px) saturate(150%);
+    -webkit-backdrop-filter: blur(20px) saturate(150%);
+}
+
+/* ---------------------------------------------------------------------- */
+/* Scroll area */
+
+::-webkit-scrollbar {
+    @apply bg-zinc-300 w-2 h-1;
+}
+
+::-webkit-scrollbar-thumb:horizontal {
+    @apply bg-zinc-400 rounded-none;
+}
+
+::-webkit-scrollbar-thumb:vertical {
+    @apply bg-zinc-400 rounded-none;
+}
+
+* {
+    scroll-behavior: smooth;
+    scroll-padding-top: 60px;
+}

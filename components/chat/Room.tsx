@@ -2,6 +2,8 @@
 
 import Message from "./Message";
 import ChatForm from "./ChatForm";
+import { CopyIcon } from "../icons";
+import { useEffect, useRef } from "react";
 import { socket } from "@/lib/socketClient";
 
 interface RoomProps {
@@ -18,22 +20,54 @@ const Room = (props: RoomProps) => {
         socket.emit("message", data);
     };
 
+    const handleCopyRoomId = () => {
+        navigator.clipboard.writeText(roomCode);
+        alert("Room ID copied to clipboard");
+    };
+
+    // Create a reference for the messages container
+    const messagesEndRef = useRef<HTMLDivElement | null>(null);
+
+    // Scroll to the bottom whenever the messages state changes
+    useEffect(() => {
+        if (messagesEndRef.current) {
+            messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+        }
+    }, [messages]);
+
     return (
-        <div className="max-w-3xl mx-auto w-full">
-            <h1 className="text-2xl font-bold mb-4">Room: {roomCode}</h1>
+        <div className="max-w-full sm:max-w-2xl mx-auto w-full space-y-4 p-4">
             <div
-                className="bg-zinc-100 overflow-y-auto border-2 border-zinc-200
-                rounded-lg p-4 mb-4 h-[500px]">
-                {messages.map((message, index) => (
-                    <Message
-                        key={index}
-                        sender={message.sender}
-                        message={message.msg}
-                        isOwnMessage={message.sender === username}
-                    />
-                ))}
+                className="bg-[url('/images/chat-bg.png')] bg-no-repeat bg-cover
+                overflow-y-auto border-2 border-zinc-200 rounded h-[75dvh]">
+                <div
+                    className="bg-gray-200 bg-opacity-90 glass sticky
+                    rounded-b-xl top-0 z-10 mb-1 px-4 pb-6 pt-4">
+                    <h1
+                        onClick={handleCopyRoomId}
+                        className="flex items-center gap-2
+                        text-zinc-700 text-xl sm:text-2xl
+                        font-bold cursor-pointer w-fit">
+                        Room:
+                        <span className="underline">{roomCode}</span>
+                        <CopyIcon />
+                    </h1>
+                </div>
+                <div className="px-2 py-4">
+                    {messages.map((message, index) => (
+                        <Message
+                            key={index}
+                            sender={message.sender}
+                            message={message.msg}
+                            isOwnMessage={message.sender === username}
+                        />
+                    ))}
+                </div>
+
+                <div ref={messagesEndRef}></div>
+
+                <ChatForm onSendMessage={handleOnSendMessage} />
             </div>
-            <ChatForm onSendMessage={handleOnSendMessage} />
         </div>
     );
 };
