@@ -2,9 +2,9 @@
 
 import Room from "@/components/chat/Room";
 import { decode } from "@msgpack/msgpack";
-import { useEffect, useState } from "react";
 import { socket } from "@/lib/socketClient";
 import JoinRoom from "@/components/chat/JoinRoom";
+import { Fragment, useEffect, useState } from "react";
 
 function RootPage() {
     const [joined, setJoined] = useState(false);
@@ -44,17 +44,22 @@ function RootPage() {
     }, []);
 
     return (
-        <div className="flex items-center justify-center h-dvh w-full">
-            {joined ? (
-                <Room
-                    roomCode={roomCode}
-                    username={username}
-                    messages={messages}
-                />
-            ) : (
-                <JoinRoom onJoinRoom={handleOnJoinRoom} />
-            )}
-        </div>
+        <Fragment>
+            <title>
+                {!joined ? "Chat App" : `Chat App | Room ${roomCode}`}
+            </title>
+            <div className="flex items-center justify-center h-dvh w-full">
+                {joined ? (
+                    <Room
+                        roomCode={roomCode}
+                        username={username}
+                        messages={messages}
+                    />
+                ) : (
+                    <JoinRoom onJoinRoom={handleOnJoinRoom} />
+                )}
+            </div>
+        </Fragment>
     );
 }
 
