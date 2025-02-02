@@ -1,6 +1,7 @@
 "use client";
 
 import Room from "@/components/chat/Room";
+import { decode } from "@msgpack/msgpack";
 import { useEffect, useState } from "react";
 import { socket } from "@/lib/socketClient";
 import JoinRoom from "@/components/chat/JoinRoom";
@@ -20,14 +21,16 @@ function RootPage() {
     };
 
     useEffect(() => {
-        const handleMessage = (data: Message) => {
-            setMessages((prev) => [...prev, data]);
+        const handleMessage = (data: Buffer) => {
+            const decodedMessage = decode(data) as Message;
+            setMessages((prev) => [...prev, decodedMessage]);
         };
 
-        const handleUserJoined = (data: Message) => {
+        const handleUserJoined = (data: Buffer) => {
+            const decodedMessage = decode(data) as Message;
             setMessages((prev) => [
                 ...prev,
-                { sender: "Server", msg: data.msg },
+                { sender: "Server", msg: decodedMessage.msg },
             ]);
         };
 
@@ -49,11 +52,7 @@ function RootPage() {
                     messages={messages}
                 />
             ) : (
-                <JoinRoom
-                    onJoinRoom={(roomCode, username) => {
-                        handleOnJoinRoom(roomCode, username);
-                    }}
-                />
+                <JoinRoom onJoinRoom={handleOnJoinRoom} />
             )}
         </div>
     );

@@ -20,14 +20,15 @@ const Message = (props: MessageProps) => {
             <div
                 className={`${
                     isServerMessage
-                        ? "text-zinc-700 text-center text-xs underline font-bold"
+                        ? `bg-stone-200 text-zinc-700 text-center
+                        shadow text-xs underline font-bold px-2 py-1`
                         : isOwnMessage
-                        ? `bg-gradient-to-b from-zinc-600 to-zinc-800 text-white
-                        border border-zinc-800 shadow-lg min-w-60`
-                        : `bg-gradient-to-b from-zinc-200 to-zinc-300 text-black
-                        border border-zinc-400 shadow-lg min-w-60`
+                        ? `bg-gradient-to-b from-zinc-500 to-zinc-800 text-white
+                        rounded-lg shadow-xl min-w-60 px-4 py-2 `
+                        : `bg-gradient-to-b from-indigo-100 to-indigo-200 text-black
+                        rounded-lg shadow-xl min-w-60 px-4 py-2 `
                 }
-                max-w-md rounded-lg px-4 py-2 space-y-2`}>
+                max-w-md space-y-2`}>
                 {!isServerMessage && (
                     <p className="text-sm sm:text-base font-bold">{sender}</p>
                 )}
