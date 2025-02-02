@@ -39,10 +39,11 @@ const Room = (props: RoomProps) => {
         <div className="max-w-full sm:max-w-2xl mx-auto w-full space-y-4 p-4">
             <div
                 className="bg-[url('/images/chat-bg.png')] bg-no-repeat bg-cover
+                flex flex-col
                 overflow-y-auto border-2 border-zinc-200 rounded h-[75dvh]">
                 <div
                     className="bg-gray-200 bg-opacity-90 glass sticky
-                    rounded-b-xl top-0 z-10 mb-1 px-4 pb-6 pt-4">
+                    rounded-b-xl top-0 z-10 px-4 pb-6 pt-4">
                     <h1
                         onClick={handleCopyRoomId}
                         className="flex items-center gap-2
@@ -53,7 +54,7 @@ const Room = (props: RoomProps) => {
                         <CopyIcon />
                     </h1>
                 </div>
-                <div className="px-2 py-4">
+                <div className="px-2 py-4 flex-1">
                     {messages.map((message, index) => (
                         <Message
                             key={index}
