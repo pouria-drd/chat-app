@@ -12,6 +12,10 @@ const hostname = process.env.HOSTNAME || "localhost";
 const app = next({ dev, hostname, port, turbopack: true });
 const handle = app.getRequestHandler();
 
+// Define the storage for rooms and users
+export const rooms: Rooms = {};
+export const users: Users = {};
+
 /**
  * Starts the server and sets up socket.io connections.
  *
@@ -36,7 +40,7 @@ app.prepare().then(() => {
         });
 
         // Event listener for receiving messages from users
-        socket.on("message", ({ roomCode, message, sender }) => {
+        socket.on("new-message", ({ roomCode, message, sender }) => {
             handleMessage(socket, roomCode, message, sender, io); // Use the handler for messages
         });
 
@@ -51,6 +55,8 @@ app.prepare().then(() => {
         console.log(`Server running at http://${hostname}:${port}/`);
     });
 });
+
+// Helpers ----------------------------------------------------------------------
 
 /**
  * Handles the event when a user joins a room.
@@ -67,18 +73,24 @@ const handleJoinRoom = (
     username: string,
     io: Server
 ) => {
+    // Join room and get user info
+    const user = joinRoom(roomCode, socket.id, username);
+
     // Join the user to the specified room
     socket.join(roomCode);
-    console.log(`SERVER: User ${username} joined room ${roomCode}`);
+    console.log(
+        `SERVER: User ${username} joined room ${roomCode} as ${user.role}`
+    );
 
-    // Create a message to notify others that a user joined
+    // Notify others in the room
     const message = encode({
         sender: "Server",
-        msg: `${username} joined the room`,
+        msg: `${username} joined the room as ${user.role}`,
     });
+    io.to(roomCode).emit("new-user-joined", message);
 
-    // Broadcast the message to everyone in the room except the sender
-    io.to(roomCode).emit("user_joined", message);
+    // Send confirmation back to the user with their username and room code
+    socket.emit("joined-success", { roomCode, user });
 };
 
 /**
@@ -89,6 +101,7 @@ const handleJoinRoom = (
 
 const handleDisconnect = (socket: Socket) => {
     console.log(`User disconnected: ${socket.id}`);
+    handleUserDisconnect(socket.id, "");
 };
 
 /**
@@ -104,7 +117,7 @@ const handleMessage = (
     socket: Socket,
     roomCode: string,
     message: string,
-    sender: string,
+    sender: User | "Server",
     io: Server
 ) => {
     console.log(`SERVER: New message from ${sender} in room ${roomCode}`);
@@ -113,5 +126,66 @@ const handleMessage = (
     const messageData = encode({ sender, msg: message });
 
     // Broadcast the message to everyone in the room except the sender
-    io.to(roomCode).emit("message", messageData);
+    io.to(roomCode).emit("new-message", messageData);
 };
+
+/**
+ * Function to handle user joining a room and broadcast the event to other users
+ *
+ * @param roomCode - The room code the user is joining.
+ * @param socketId - The socket ID of the user joining the room.
+ * @param username - The username of the user joining the room.
+ * @returns The user object with their role.
+ */
+function joinRoom(roomCode: string, socketId: string, username: string): User {
+    // Check if the room already exists
+    let userRole: "user" | "admin" | "owner" = "user"; // Default role is user
+
+    if (!rooms[roomCode]) {
+        // If room doesn't exist, create the room and assign the first user as owner
+        rooms[roomCode] = { ownerSocketId: socketId };
+        userRole = "owner"; // First user becomes the owner
+    }
+
+    // Add user to users object with assigned role
+    const user: User = { username, role: userRole };
+    users[socketId] = user;
+
+    return user;
+}
+
+/**
+ * Function to handle user disconnection and cleanup
+ *
+ * @param socketId - The socket ID of the user who disconnected.
+ * @param roomCode - The room code where the user disconnected.
+ */
+function handleUserDisconnect(socketId: string, roomCode: string): void {
+    delete users[socketId]; // Remove user from the users object
+    // You could also remove the room if no users are left, depending on your needs
+    // e.g., delete rooms[roomCode] if no users are in the room
+}
+
+// Types ----------------------------------------------------------------------
+
+type Message = {
+    msg: string;
+    sender: User | "Server";
+};
+
+interface Room {
+    ownerSocketId: string;
+}
+
+interface User {
+    username: string;
+    role: "user" | "admin" | "owner";
+}
+
+interface Rooms {
+    [roomCode: string]: Room;
+}
+
+interface Users {
+    [socketId: string]: User;
+}

@@ -4,5 +4,22 @@ type IconProps = {
 
 type Message = {
     msg: string;
-    sender: string;
+    sender: User | "Server";
 };
+
+interface Room {
+    ownerSocketId: string;
+}
+
+interface User {
+    username: string;
+    role: "user" | "admin" | "owner";
+}
+
+interface Rooms {
+    [roomCode: string]: Room;
+}
+
+interface Users {
+    [socketId: string]: User;
+}

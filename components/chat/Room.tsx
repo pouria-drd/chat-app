@@ -7,17 +7,17 @@ import { useEffect, useRef } from "react";
 import { socket } from "@/lib/socketClient";
 
 interface RoomProps {
+    user: User;
     roomCode: string;
-    username: string;
     messages: Message[];
 }
 
 const Room = (props: RoomProps) => {
-    const { roomCode, username, messages } = props;
+    const { roomCode, user, messages } = props;
 
     const handleOnSendMessage = (message: string) => {
-        const data = { roomCode, message, sender: username };
-        socket.emit("message", data);
+        const data = { roomCode, message, sender: user };
+        socket.emit("new-message", data);
     };
 
     const handleCopyRoomId = () => {
@@ -60,7 +60,10 @@ const Room = (props: RoomProps) => {
                             key={index}
                             sender={message.sender}
                             message={message.msg}
-                            isOwnMessage={message.sender === username}
+                            isOwnMessage={
+                                message.sender !== "Server" &&
+                                message.sender.username === user.username
+                            }
                         />
                     ))}
                 </div>

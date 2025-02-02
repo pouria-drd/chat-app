@@ -7,26 +7,23 @@ import JoinRoom from "@/components/chat/JoinRoom";
 import { Fragment, useEffect, useState } from "react";
 
 function RootPage() {
+    const [user, setUser] = useState<User>();
     const [joined, setJoined] = useState(false);
     const [roomCode, setRoomCode] = useState<string>("");
-    const [username, setUsername] = useState<string>("");
     const [messages, setMessages] = useState<Message[]>([]);
 
     const handleOnJoinRoom = (roomCode: string, username: string) => {
         if (!roomCode.trim() || !username.trim()) return;
-        setRoomCode(roomCode);
-        setUsername(username);
         socket.emit("join-room", { roomCode, username });
-        setJoined(true);
     };
 
     useEffect(() => {
-        const handleMessage = (data: Buffer) => {
+        const handleNewMessage = (data: Buffer) => {
             const decodedMessage = decode(data) as Message;
             setMessages((prev) => [...prev, decodedMessage]);
         };
 
-        const handleUserJoined = (data: Buffer) => {
+        const handleNewUserJoined = (data: Buffer) => {
             const decodedMessage = decode(data) as Message;
             setMessages((prev) => [
                 ...prev,
@@ -34,12 +31,26 @@ function RootPage() {
             ]);
         };
 
-        socket.on("message", handleMessage);
-        socket.on("user_joined", handleUserJoined);
+        const handleJoinSuccess = ({
+            roomCode,
+            user,
+        }: {
+            roomCode: string;
+            user: User;
+        }) => {
+            setUser(user);
+            setRoomCode(roomCode);
+            setJoined(true);
+        };
+
+        socket.on("new-message", handleNewMessage);
+        socket.on("joined-success", handleJoinSuccess);
+        socket.on("new-user-joined", handleNewUserJoined);
 
         return () => {
-            socket.off("message", handleMessage);
-            socket.off("user_joined", handleUserJoined);
+            socket.off("nwe-message", handleNewMessage);
+            socket.off("joined-success", handleJoinSuccess);
+            socket.off("new-user-joined", handleNewUserJoined);
         };
     }, []);
 
@@ -49,12 +60,8 @@ function RootPage() {
                 {!joined ? "Chat App" : `Chat App | Room ${roomCode}`}
             </title>
             <div className="flex items-center justify-center h-dvh w-full">
-                {joined ? (
-                    <Room
-                        roomCode={roomCode}
-                        username={username}
-                        messages={messages}
-                    />
+                {joined && user ? (
+                    <Room roomCode={roomCode} user={user} messages={messages} />
                 ) : (
                     <JoinRoom onJoinRoom={handleOnJoinRoom} />
                 )}

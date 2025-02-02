@@ -1,6 +1,6 @@
 interface MessageProps {
     message: string;
-    sender: string;
+    sender: User | "Server";
     isOwnMessage: boolean;
 }
 
@@ -30,7 +30,16 @@ const Message = (props: MessageProps) => {
                 }
                 max-w-md space-y-2`}>
                 {!isServerMessage && (
-                    <p className="text-sm sm:text-base font-bold">{sender}</p>
+                    <p className="text-sm sm:text-base flex items-center justify-between font-bold w-full">
+                        <span>{sender.username}</span>
+                        <span className="text-zinc-400 text-xs">
+                            {sender.role === "owner"
+                                ? "[owner]"
+                                : sender.role === "admin"
+                                ? "[admin]"
+                                : ""}
+                        </span>
+                    </p>
                 )}
                 <p className="text-xs sm:text-sm">{message}</p>
             </div>
