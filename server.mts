@@ -160,7 +160,7 @@ const handleToggleChat = (socket: Socket, roomCode: string, io: Server) => {
         // Broadcast the message to everyone in the room is closed or open
         const messageData = encode({
             sender: "Server",
-            msg: `Chat ${
+            msg: `Room ${
                 rooms[roomCode].isRoomOpen ? "opened" : "closed"
             } by the owner`,
         });
