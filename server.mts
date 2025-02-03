@@ -94,11 +94,17 @@ const handleJoinRoom = (
     });
     io.to(roomCode).emit("new-user-joined", message);
 
+    // Send updated user count
+    io.to(roomCode).emit("update-online-users", {
+        onlineUsers: rooms[roomCode].onlineUsers,
+    });
+
     // Send confirmation back to the user with their username and room code
     socket.emit("joined-success", {
         roomCode,
         user,
         isRoomOpen: rooms[roomCode].isRoomOpen,
+        onlineUsers: rooms[roomCode].onlineUsers, // Send count to new user
     });
 };
 
@@ -114,6 +120,18 @@ const handleDisconnect = (io: Server, socket: Socket) => {
     if (!user) return; // User might not exist
 
     const { username, roomCode } = user;
+
+    if (rooms[roomCode]) {
+        rooms[roomCode].onlineUsers = Math.max(
+            0,
+            rooms[roomCode].onlineUsers - 1
+        ); // Ensure it doesn’t go negative
+
+        // Emit updated user count
+        io.to(roomCode).emit("update-online-users", {
+            onlineUsers: rooms[roomCode].onlineUsers,
+        });
+    }
 
     // Notify other users in the room
     const messageData = encode({
@@ -196,9 +214,15 @@ function joinRoom(roomCode: string, socketId: string, username: string): User {
 
     if (!rooms[roomCode]) {
         // If room doesn't exist, create the room and assign the first user as owner
-        rooms[roomCode] = { ownerSocketId: socketId, isRoomOpen: true };
+        rooms[roomCode] = {
+            ownerSocketId: socketId,
+            isRoomOpen: true,
+            onlineUsers: 0,
+        };
         userRole = "owner"; // First user becomes the owner
     }
+
+    rooms[roomCode].onlineUsers += 1; // Increment online users
 
     // Add user to users object with assigned role
     const user: User = { username, role: userRole, roomCode };
@@ -216,6 +240,7 @@ type Message = {
 
 interface Room {
     isRoomOpen: boolean;
+    onlineUsers: number;
     ownerSocketId: string;
 }
 

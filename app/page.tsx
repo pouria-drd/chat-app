@@ -12,6 +12,7 @@ function RootPage() {
     const [isRoomOpen, setIsRoomOpen] = useState(true);
     const [roomCode, setRoomCode] = useState<string>("");
     const [messages, setMessages] = useState<Message[]>([]);
+    const [onlineUsers, setOnlineUsers] = useState<number>(0);
 
     const handleOnJoinRoom = (roomCode: string, username: string) => {
         if (!roomCode.trim() || !username.trim()) return;
@@ -36,25 +37,38 @@ function RootPage() {
             roomCode,
             user,
             isRoomOpen,
+            onlineUsers,
         }: {
             roomCode: string;
             user: User;
             isRoomOpen: boolean;
+            onlineUsers: number;
         }) => {
             setUser(user);
             setJoined(true);
             setRoomCode(roomCode);
             setIsRoomOpen(isRoomOpen);
+            setOnlineUsers(onlineUsers);
+        };
+
+        const handleUpdateOnlineUsers = ({
+            onlineUsers,
+        }: {
+            onlineUsers: number;
+        }) => {
+            setOnlineUsers(onlineUsers);
         };
 
         socket.on("new-message", handleNewMessage);
         socket.on("joined-success", handleJoinSuccess);
         socket.on("new-user-joined", handleNewUserJoined);
+        socket.on("update-online-users", handleUpdateOnlineUsers);
 
         return () => {
             socket.off("nwe-message", handleNewMessage);
             socket.off("joined-success", handleJoinSuccess);
             socket.off("new-user-joined", handleNewUserJoined);
+            socket.off("update-online-users", handleUpdateOnlineUsers);
         };
     }, []);
 
@@ -66,10 +80,11 @@ function RootPage() {
             <div className="flex items-center justify-center h-dvh w-full">
                 {joined && user ? (
                     <Room
-                        roomCode={roomCode}
                         user={user}
+                        roomCode={roomCode}
                         messages={messages}
                         roomOpen={isRoomOpen}
+                        onlineUsers={onlineUsers}
                     />
                 ) : (
                     <JoinRoom onJoinRoom={handleOnJoinRoom} />

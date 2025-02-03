@@ -9,6 +9,7 @@ type Message = {
 
 interface Room {
     isRoomOpen: boolean;
+    onlineUsers: number;
     ownerSocketId: string;
 }
 

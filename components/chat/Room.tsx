@@ -11,13 +11,13 @@ interface RoomProps {
     roomCode: string;
     messages: Message[];
     roomOpen: boolean;
+    onlineUsers: number;
 }
 
 const Room = (props: RoomProps) => {
     const { roomCode, user, messages, roomOpen } = props;
     // Create a reference for the messages container
     const messagesEndRef = useRef<HTMLDivElement | null>(null);
-
     const [isRoomOpen, setIsRoomOpen] = useState<boolean>(roomOpen);
 
     const handleOnSendMessage = (message: string) => {
@@ -31,12 +31,9 @@ const Room = (props: RoomProps) => {
         alert("Room ID copied to clipboard");
     };
 
-    // Scroll to the bottom whenever the messages state changes
-    useEffect(() => {
-        if (messagesEndRef.current) {
-            messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
-        }
-    }, [messages]);
+    const handleToggleRoomStatus = () => {
+        socket.emit("toggle-room-open-status", { roomCode });
+    };
 
     useEffect(() => {
         const handleChatStatus = ({ chatOpen }: { chatOpen: boolean }) => {
@@ -50,9 +47,12 @@ const Room = (props: RoomProps) => {
         };
     }, []);
 
-    const handleToggleRoomStatus = () => {
-        socket.emit("toggle-room-open-status", { roomCode });
-    };
+    // Scroll to the bottom whenever the messages state changes
+    useEffect(() => {
+        if (messagesEndRef.current) {
+            messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+        }
+    }, [messages]);
 
     return (
         <div className="max-w-full sm:max-w-2xl mx-auto w-full space-y-4 p-4">
@@ -82,6 +82,10 @@ const Room = (props: RoomProps) => {
                                 open
                             </span>
                         )}
+
+                        <span className="bg-zinc-200 text-zinc-700 text-xs rounded-2xl px-2 py-1 min-w-16">
+                            {props.onlineUsers} users online
+                        </span>
                     </div>
 
                     {user.role === "owner" && (
