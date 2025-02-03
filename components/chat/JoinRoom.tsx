@@ -19,7 +19,9 @@ const JoinRoom = (props: JoinRoomProps) => {
     return (
         <div className="flex flex-col items-center max-w-64 mx-auto space-y-4 w-ful">
             <div className="text-center space-y-1">
-                <h1 className="text-3xl font-bold">Join a room</h1>
+                <h1 className="text-zinc-700 text-3xl font-bold">
+                    Join a room
+                </h1>
                 <p className="text-zinc-500">
                     fill out the form below to join a room
                 </p>
