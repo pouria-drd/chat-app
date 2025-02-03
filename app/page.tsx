@@ -33,17 +33,14 @@ function RootPage() {
             ]);
         };
 
-        const handleJoinSuccess = ({
-            roomCode,
-            user,
-            isRoomOpen,
-            onlineUsers,
-        }: {
-            roomCode: string;
-            user: User;
-            isRoomOpen: boolean;
-            onlineUsers: number;
-        }) => {
+        const handleJoinSuccess = (data: Buffer) => {
+            const decodedData = decode(data) as {
+                user: User;
+                roomCode: string;
+                isRoomOpen: boolean;
+                onlineUsers: number;
+            };
+            const { user, roomCode, isRoomOpen, onlineUsers } = decodedData;
             setUser(user);
             setJoined(true);
             setRoomCode(roomCode);
@@ -51,11 +48,9 @@ function RootPage() {
             setOnlineUsers(onlineUsers);
         };
 
-        const handleUpdateOnlineUsers = ({
-            onlineUsers,
-        }: {
-            onlineUsers: number;
-        }) => {
+        const handleUpdateOnlineUsers = (data: Buffer) => {
+            const decodedData = decode(data) as { onlineUsers: number };
+            const onlineUsers = decodedData.onlineUsers;
             setOnlineUsers(onlineUsers);
         };
 

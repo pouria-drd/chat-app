@@ -4,6 +4,7 @@ import Message from "./Message";
 import ChatForm from "./ChatForm";
 import { CopyIcon } from "../icons";
 import { socket } from "@/lib/socketClient";
+import { decode, encode } from "@msgpack/msgpack";
 import { useEffect, useRef, useState } from "react";
 
 interface RoomProps {
@@ -22,7 +23,7 @@ const Room = (props: RoomProps) => {
 
     const handleOnSendMessage = (message: string) => {
         if (!isRoomOpen) return;
-        const data = { roomCode, message, sender: user };
+        const data = encode({ roomCode, message, sender: user });
         socket.emit("new-message", data);
     };
 
@@ -32,11 +33,13 @@ const Room = (props: RoomProps) => {
     };
 
     const handleToggleRoomStatus = () => {
-        socket.emit("toggle-room-open-status", { roomCode });
+        socket.emit("toggle-room-open-status", encode({ roomCode }));
     };
 
     useEffect(() => {
-        const handleChatStatus = ({ chatOpen }: { chatOpen: boolean }) => {
+        const handleChatStatus = (data: Buffer) => {
+            const decodedData = decode(data) as { chatOpen: boolean };
+            const { chatOpen } = decodedData;
             setIsRoomOpen(chatOpen);
         };
 

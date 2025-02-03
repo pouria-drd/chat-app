@@ -1,7 +1,7 @@
 import next from "next";
 import { createServer } from "node:http";
-import { encode } from "@msgpack/msgpack";
 import { Server, Socket } from "socket.io";
+import { decode, encode } from "@msgpack/msgpack";
 
 // Server configuration variables
 const dev = process.env.NODE_ENV !== "production";
@@ -40,12 +40,20 @@ app.prepare().then(() => {
         });
 
         // Event listener for receiving messages from users
-        socket.on("new-message", ({ roomCode, message, sender }) => {
+        socket.on("new-message", (data: Buffer) => {
+            const decodedData = decode(data) as {
+                roomCode: string;
+                message: string;
+                sender: User | "Server";
+            };
+            const { roomCode, message, sender } = decodedData;
             handleMessage(socket, roomCode, message, sender, io); // Use the handler for messages
         });
 
         // Event listener for toggling chat in a room (open/close)
-        socket.on("toggle-room-open-status", ({ roomCode }) => {
+        socket.on("toggle-room-open-status", (data: Buffer) => {
+            const decodedData = decode(data) as { roomCode: string };
+            const { roomCode } = decodedData;
             handleToggleChat(socket, roomCode, io);
         });
 
@@ -95,17 +103,23 @@ const handleJoinRoom = (
     io.to(roomCode).emit("new-user-joined", message);
 
     // Send updated user count
-    io.to(roomCode).emit("update-online-users", {
-        onlineUsers: rooms[roomCode].onlineUsers,
-    });
+    io.to(roomCode).emit(
+        "update-online-users",
+        encode({
+            onlineUsers: rooms[roomCode].onlineUsers,
+        })
+    );
 
     // Send confirmation back to the user with their username and room code
-    socket.emit("joined-success", {
-        roomCode,
-        user,
-        isRoomOpen: rooms[roomCode].isRoomOpen,
-        onlineUsers: rooms[roomCode].onlineUsers, // Send count to new user
-    });
+    socket.emit(
+        "joined-success",
+        encode({
+            user,
+            roomCode,
+            isRoomOpen: rooms[roomCode].isRoomOpen,
+            onlineUsers: rooms[roomCode].onlineUsers,
+        })
+    );
 };
 
 /**
@@ -128,9 +142,12 @@ const handleDisconnect = (io: Server, socket: Socket) => {
         ); // Ensure it doesn’t go negative
 
         // Emit updated user count
-        io.to(roomCode).emit("update-online-users", {
-            onlineUsers: rooms[roomCode].onlineUsers,
-        });
+        io.to(roomCode).emit(
+            "update-online-users",
+            encode({
+                onlineUsers: rooms[roomCode].onlineUsers,
+            })
+        );
     }
 
     // Notify other users in the room
@@ -166,7 +183,11 @@ const handleMessage = (
         return;
     }
 
-    console.log(`SERVER: New message from ${sender} in room ${roomCode}`);
+    if (sender !== "Server") {
+        console.log(
+            `SERVER: New message from ${sender.username} in room ${roomCode}`
+        );
+    }
 
     // Create a message object to send to other users in the room
     const messageData = encode({ sender, msg: message });
@@ -185,9 +206,11 @@ const handleMessage = (
 const handleToggleChat = (socket: Socket, roomCode: string, io: Server) => {
     if (rooms[roomCode] && rooms[roomCode].ownerSocketId === socket.id) {
         rooms[roomCode].isRoomOpen = !rooms[roomCode].isRoomOpen;
-        io.to(roomCode).emit("is-room-open-status", {
-            chatOpen: rooms[roomCode].isRoomOpen,
-        });
+
+        io.to(roomCode).emit(
+            "is-room-open-status",
+            encode({ chatOpen: rooms[roomCode].isRoomOpen })
+        );
 
         // Broadcast the message to everyone in the room is closed or open
         const messageData = encode({
