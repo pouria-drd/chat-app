@@ -51,7 +51,7 @@ app.prepare().then(() => {
 
         // Event listener for user disconnection
         socket.on("disconnect", () => {
-            handleDisconnect(socket); // Use the handler for disconnect
+            handleDisconnect(io, socket); // Use the handler for disconnect
         });
     });
 
@@ -105,12 +105,26 @@ const handleJoinRoom = (
 /**
  * Handles user disconnection.
  *
+ * @param io - The socket.io server instance.
  * @param socket - The socket instance of the disconnected user.
  */
+const handleDisconnect = (io: Server, socket: Socket) => {
+    const user = users[socket.id];
 
-const handleDisconnect = (socket: Socket) => {
-    console.log(`User disconnected: ${socket.id}`);
-    handleUserDisconnect(socket.id, "");
+    if (!user) return; // User might not exist
+
+    const { username, roomCode } = user;
+
+    // Notify other users in the room
+    const messageData = encode({
+        sender: "Server",
+        msg: `${username} left the room`,
+    });
+
+    io.to(roomCode).emit("new-message", messageData);
+    console.log(`SERVER: User ${username} disconnected from room ${roomCode}`);
+
+    delete users[socket.id]; // Remove user from users list
 };
 
 /**
@@ -187,22 +201,10 @@ function joinRoom(roomCode: string, socketId: string, username: string): User {
     }
 
     // Add user to users object with assigned role
-    const user: User = { username, role: userRole };
+    const user: User = { username, role: userRole, roomCode };
     users[socketId] = user;
 
     return user;
-}
-
-/**
- * Function to handle user disconnection and cleanup
- *
- * @param socketId - The socket ID of the user who disconnected.
- * @param roomCode - The room code where the user disconnected.
- */
-function handleUserDisconnect(socketId: string, roomCode: string): void {
-    delete users[socketId]; // Remove user from the users object
-    // You could also remove the room if no users are left, depending on your needs
-    // e.g., delete rooms[roomCode] if no users are in the room
 }
 
 // Types ----------------------------------------------------------------------
@@ -219,6 +221,7 @@ interface Room {
 
 interface User {
     username: string;
+    roomCode: string;
     role: "user" | "admin" | "owner";
 }
 

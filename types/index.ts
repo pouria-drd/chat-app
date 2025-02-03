@@ -14,6 +14,7 @@ interface Room {
 
 interface User {
     username: string;
+    roomCode: string;
     role: "user" | "admin" | "owner";
 }
 
